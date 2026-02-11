@@ -4,9 +4,12 @@ import { AppModule } from './app.module';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
-  await app.listen(3000);
-  // eslint-disable-next-line no-console
-  console.log('Hello World API is running on http://localhost:3000');
+
+  app.enableCors();
+
+  const port = process.env.PORT || 3000;
+  await app.listen(port);
+  console.log(`Schedula API is running on http://localhost:${port}`);
 }
 
 bootstrap();
