@@ -15,10 +15,60 @@ model User {
   email     String   @unique
   password  String?
   googleId  String?  @unique
-  provider  String   @default("LOCAL") // LOCAL or GOOGLE
-  role      String   @default("USER")  // USER or ADMIN
+  provider  Provider @default(LOCAL)
+  role      Role     @default(PATIENT)
+  status    Status   @default(PENDING)
+
+  doctorProfile DoctorProfile?
+  verificationTokens VerificationToken[]
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
 
-  @@map("users")
+model DoctorProfile {
+  id        String   @id @default(uuid())
+  userId    String   @unique
+  user      User     @relation(fields: [userId], references: [id])
+
+  fullName          String
+  experienceYears   Int
+  consultationFee   Float
+  consultationHours String
+  bio               String?
+
+  specializations   Specialization[]
+}
+
+model Specialization {
+  id        String   @id @default(uuid())
+  profileId String
+  profile   DoctorProfile @relation(fields: [profileId], references: [id])
+
+  name      String
+}
+
+model VerificationToken {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+
+  token     String
+  expiresAt DateTime
+}
+
+enum Role {
+  PATIENT
+  DOCTOR
+  ADMIN
+}
+
+enum Status {
+  PENDING
+  APPROVED
+}
+
+enum Provider {
+  LOCAL
+  GOOGLE
 }
