@@ -1,26 +1,45 @@
-import { Controller, Post, Get, Body, UseGuards, Req, BadRequestException } from '@nestjs/common';
+import {
+  Controller,
+  Post,
+  Get,
+  Body,
+  UseGuards,
+  Req,
+  BadRequestException,
+  Query,
+} from '@nestjs/common';
 import { AuthGuard as PassportAuthGuard } from '@nestjs/passport';
 import { AuthService } from './auth.service';
-import { SignupDto, SignupDtoSchema } from './dto/signup.dto';
-import { SigninDto, SigninDtoSchema } from './dto/signin.dto';
+import { SignupDtoSchema } from './dto/signup.dto';
+import { SigninDtoSchema } from './dto/signin.dto';
 import { AuthResponseDto } from './dto/auth-response.dto';
-import { AuthGuard } from './guards/auth.guard';
+import { ZodError } from 'zod';
+import { Role } from '@prisma/client';
 
 @Controller('auth')
 export class AuthController {
   constructor(private authService: AuthService) {}
 
   @Post('signup')
-  async signup(@Body() body: any): Promise<AuthResponseDto> {
+  async signup(@Body() body: any): Promise<{ message: string }> {
     try {
       const data = SignupDtoSchema.parse(body);
       return await this.authService.signup(data);
     } catch (error: any) {
-      if (error.errors) {
+      if (error instanceof ZodError) {
         throw new BadRequestException(error.errors[0].message);
       }
       throw error;
     }
+  }
+
+  @Get('verify')
+  async verify(@Query('token') token: string) {
+    if (!token) {
+      throw new BadRequestException('Token is required');
+    }
+
+    return this.authService.verify(token);
   }
 
   @Post('signin')
@@ -29,7 +48,7 @@ export class AuthController {
       const data = SigninDtoSchema.parse(body);
       return await this.authService.signin(data);
     } catch (error: any) {
-      if (error.errors) {
+      if (error instanceof ZodError) {
         throw new BadRequestException(error.errors[0].message);
       }
       throw error;
@@ -39,38 +58,29 @@ export class AuthController {
   @Get('google')
   @UseGuards(PassportAuthGuard('google'))
   async googleAuth() {
-    // This route initiates Google OAuth flow
-    // PassportAuthGuard handles the redirect to Google
+    // handled by passport
   }
 
   @Get('google/callback')
   @UseGuards(PassportAuthGuard('google'))
   async googleCallback(@Req() req: any): Promise<AuthResponseDto> {
-    let role: string | undefined;
+    let role: Role | undefined;
+
     try {
       const state = req.query?.state;
       if (state) {
-        const parsed = typeof state === 'string' ? JSON.parse(state) : state;
-        role = parsed?.role;
+        const parsed =
+          typeof state === 'string' ? JSON.parse(state) : state;
+
+        if (parsed?.role && Object.values(Role).includes(parsed.role)) {
+          role = parsed.role as Role;
+        }
       }
-    } catch (e) {
+    } catch {
       // ignore malformed state
     }
 
     return this.authService.handleGoogleCallback(req.user, role);
   }
 
-  @Post('signout')
-  async signout(@Req() req: any) {
-    return { success: true };
-  }
-
-  @Get('me')
-  @UseGuards(AuthGuard)
-  async getMe(@Req() req: any) {
-    return {
-      userId: req.user.userId,
-      role: req.user.role,
-    };
-  }
 }
