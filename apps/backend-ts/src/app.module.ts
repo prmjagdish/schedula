@@ -5,6 +5,7 @@ import { AppService } from './app.service';
 import { AuthModule } from './modules/auth/auth.module';
 import { DoctorsModule } from './modules/doctors/doctor.module';
 import { SlotModule } from './modules/appointment/slot.module';
+import { PatientModule } from './modules/patient/patient.module';
 
 @Module({
   imports: [
@@ -13,6 +14,7 @@ import { SlotModule } from './modules/appointment/slot.module';
     }),
     AuthModule,
     DoctorsModule,
+    PatientModule,
     SlotModule,
   ],
   controllers: [AppController],
