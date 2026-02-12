@@ -91,7 +91,9 @@ model Slot {
   startTime   DateTime
   endTime     DateTime
 
-  appointment Appointment?
+  maxCapacity Int
+
+  appointments Appointment[]
 
   createdAt   DateTime @default(now())
 
@@ -107,7 +109,7 @@ model Appointment {
   doctorId    String
   doctor      DoctorProfile @relation(fields: [doctorId], references: [id])
 
-  slotId      String   @unique
+  slotId      String   
   slot        Slot     @relation(fields: [slotId], references: [id])
 
   status      AppointmentStatus @default(CONFIRMED)
