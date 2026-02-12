@@ -20,6 +20,7 @@ model User {
   status    Status   @default(PENDING)
 
   doctorProfile DoctorProfile?
+  patientProfile  PatientProfile?
   verificationTokens VerificationToken[]
 
   createdAt DateTime @default(now())
@@ -37,24 +38,85 @@ model DoctorProfile {
   consultationHours String
   bio               String?
 
+  rating       Float @default(0)
+  totalReviews Int   @default(0)
+
   specializations   Specialization[]
+  slots           Slot[]
+  appointments    Appointment[]
+}
+
+model PatientProfile {
+  id        String   @id @default(uuid())
+  userId    String   @unique
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  fullName     String
+  phone        String?
+  gender       String?
+  dateOfBirth  DateTime?
+
+  appointments Appointment[]
+
+  createdAt DateTime @default(now())
 }
 
 model Specialization {
   id        String   @id @default(uuid())
   profileId String
-  profile   DoctorProfile @relation(fields: [profileId], references: [id])
+  profile   DoctorProfile @relation(fields: [profileId], references: [id], onDelete: Cascade)
 
   name      String
+
+  @@index([profileId])
 }
 
 model VerificationToken {
   id        String   @id @default(uuid())
   userId    String
-  user      User     @relation(fields: [userId], references: [id])
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   token     String
   expiresAt DateTime
+
+  @@index([userId])
+}
+
+model Slot {
+  id          String   @id @default(uuid())
+  doctorId    String
+  doctor      DoctorProfile @relation(fields: [doctorId], references: [id], onDelete: Cascade)
+
+  date        DateTime
+  startTime   DateTime
+  endTime     DateTime
+
+  appointment Appointment?
+
+  createdAt   DateTime @default(now())
+
+  @@index([doctorId, date])
+}
+
+model Appointment {
+  id          String   @id @default(uuid())
+
+  patientId   String
+  patient     PatientProfile @relation(fields: [patientId], references: [id], onDelete: Cascade)
+
+  doctorId    String
+  doctor      DoctorProfile @relation(fields: [doctorId], references: [id])
+
+  slotId      String   @unique
+  slot        Slot     @relation(fields: [slotId], references: [id])
+
+  status      AppointmentStatus @default(CONFIRMED)
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([patientId])
+  @@index([doctorId])
 }
 
 enum Role {
@@ -71,4 +133,10 @@ enum Status {
 enum Provider {
   LOCAL
   GOOGLE
+}
+
+enum AppointmentStatus {
+  CONFIRMED
+  CANCELLED
+  COMPLETED
 }
