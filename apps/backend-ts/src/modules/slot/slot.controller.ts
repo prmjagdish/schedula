@@ -10,7 +10,7 @@ import {
 } from "@nestjs/common";
 import { SlotService } from "./slot.service";
 import { CreateSlotSchema } from "./dto/slot.schema";
-import { AuthGuard } from ".././auth/guards/auth.guard";
+import { AuthGuard } from "../auth/guards/auth.guard";
 
 @Controller("api/v1/slots")
 export class SlotController {

@@ -5,6 +5,7 @@ import {
 } from "@nestjs/common";
 import { PrismaService } from "../../prisma.service";
 import { CreateSlotDto } from "./dto/slot.schema";
+import { AppointmentStatus } from "@prisma/client";
 
 @Injectable()
 export class SlotService {
@@ -25,6 +26,7 @@ export class SlotService {
         date: data.date,
         startTime: data.startTime,
         endTime: data.endTime,
+        maxCapacity: data.maxAppointments,
       },
     });
 
@@ -38,11 +40,12 @@ export class SlotService {
         date: data.date,
         startTime: data.startTime,
         endTime: data.endTime,
+        maxCapacity: data.maxAppointments,
       },
     });
   }
 
-    async findSlotsByDoctor(userId: string) {
+  async findSlotsByDoctor(userId: string) {
     const doctor = await this.prisma.doctorProfile.findUnique({
       where: { userId },
     });
@@ -51,8 +54,37 @@ export class SlotService {
       throw new ForbiddenException("Doctor profile not found");
     }
 
-    return this.prisma.slot.findMany({
+    const slots = await this.prisma.slot.findMany({
       where: { doctorId: doctor.id },
+      include: {
+        appointments: {
+          where: {
+            status: AppointmentStatus.CONFIRMED,
+          },
+          select: {
+            id: true,
+          },
+        },
+      },
+      orderBy: {
+        date: "asc",
+      },
+    });
+
+    // 🔥 Transform response
+    return slots.map((slot) => {
+      const confirmedCount = slot.appointments.length;
+
+      return {
+        id: slot.id,
+        date: slot.date,
+        startTime: slot.startTime,
+        endTime: slot.endTime,
+        maxCapacity: slot.maxCapacity,
+        confirmedBookings: confirmedCount,
+        remainingCapacity: slot.maxCapacity - confirmedCount,
+        status: confirmedCount >= slot.maxCapacity ? "FULL" : "AVAILABLE",
+      };
     });
   }
 }
